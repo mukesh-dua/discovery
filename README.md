@@ -4,15 +4,15 @@
   <tr>
     <td align="center" width="320">
       <img src="includes/media/windows.svg" width="96" height="96" alt="Windows logo"><br>
-      <a href="https://aka.ms/discovery/download/current"><img src="includes/media/windows-download-card.svg" width="220" height="80" alt="Download Windows 11"></a><br>
+      <a href="https://aka.ms/discovery/download/preview/x64/current"><img src="includes/media/windows-download-card.svg" width="220" height="80" alt="Download Windows 11"></a><br>
       <strong>User Installer</strong>
-      <a href="https://aka.ms/discovery/download/current"><strong>x64</strong></a>
-      <a href="https://aka.ms/discovery/download/arm64/current"><strong>Arm64</strong></a>
-      <a href="https://aka.ms/discovery/download/osx/current"><strong>macOS</strong></a>
-      <a href="https://aka.ms/discovery/download/rhel/current"><strong>RHEL</strong></a>
+      <a href="https://aka.ms/discovery/download/preview/x64/current"><strong>x64</strong></a>
+      <a href="https://aka.ms/discovery/download/preview/arm64/current"><strong>Arm64</strong></a>
+      <a href="https://aka.ms/discovery/download/preview/osx/current"><strong>macOS</strong></a>
+      <a href="https://aka.ms/discovery/download/preview/rhel/current"><strong>RHEL</strong></a>
     </td>
     <td valign="middle">
-      A self-contained desktop app - no SDK, no cloud setup. Current release: <strong>v0.15.20</strong>.<br>
+      A self-contained desktop app - no SDK, no cloud setup. Current release: <strong>v0.15.21</strong>.<br>
       <sub>Windows x64, Windows ARM64, macOS, and RHEL x64 (RPM) installers are available today.</sub><br><br>
       🛠️ <a href="docs/discovery-app/install.md">Install guide</a> - setup, verification, and upgrade steps.
     </td>
@@ -23,10 +23,10 @@
 
 | Version | Date | Platform | Installer |
 | --- | --- | --- | --- |
-| v0.15.19 _(previous)_ | 2026-10-13 | Windows x64 | [`Discovery-app-0.15.19-preview-win-x64.exe`](https://aka.ms/discovery/download/previous) |
-| v0.15.19 _(previous)_ | 2026-10-13 | Windows Arm64 | [`Discovery-app-0.15.19-preview-win-arm64.exe`](https://aka.ms/discovery/download/arm64/previous) |
-| v0.15.19 _(previous)_ | 2026-10-13 | macOS | [`Discovery-app-0.15.19-preview-osx-arm64.dmg`](https://aka.ms/discovery/download/osx/previous) |
-| v0.15.19 _(previous)_ | 2026-10-13 | RHEL x64 | [`discovery-app-preview-0.15.19-1.el9.x86_64.rpm`](https://aka.ms/discovery/download/rhel/previous) |
+| v0.15.20 _(previous)_ | 2026-10-20 | Windows x64 | [`Discovery-app-0.15.20-preview-win-x64.exe`](https://aka.ms/discovery/download/preview/x64/previous) |
+| v0.15.20 _(previous)_ | 2026-10-20 | Windows Arm64 | [`Discovery-app-0.15.20-preview-win-arm64.exe`](https://aka.ms/discovery/download/preview/arm64/previous) |
+| v0.15.20 _(previous)_ | 2026-10-20 | macOS | [`Discovery-app-0.15.20-preview-osx-arm64.dmg`](https://aka.ms/discovery/download/preview/osx/previous) |
+| v0.15.20 _(previous)_ | 2026-10-20 | RHEL x64 | [`discovery-app-preview-0.15.20-1.el9.x86_64.rpm`](https://aka.ms/discovery/download/preview/rhel/previous) |
 
 ---
 
@@ -69,6 +69,7 @@ For an app-specific 15-minute hands-on tour, see [`docs/discovery-app/quickstart
 | 📑 **[`docs/`](/docs/)** | Documentation and pointers for both Microsoft Discovery and the Discovery app, including documentation for authoring guides and schemas. | Learning more about Discovery experiences and best practices. |
 | 🎥 **[How to videos](/docs/how-to-videos/README.md)** | Curated how-to video content for Discovery workflows and onboarding. | Watching guided walkthroughs and quick task demos. |
 | 🧰 **[`starter-kits/`](/starter-kits/)** | Catalog of starter kits — `kit.json` manifests that bundle one or more catalog agents into a launchable scenario. | Browsing pre-built workflows, or publishing a new kit. |
+| 🧩 **[`skills/`](/skills/)** | Catalog of [Agent Skills](https://agentskills.io) — `SKILL.md` folders that package a reusable workflow any agent can load on demand. | Reusing proven research workflows, or publishing one of your own. |
 | 💬 **[Discussions](https://techcommunity.microsoft.com/category/azure/discussions/microsoft-discovery-discussions)** | Q&A, Ideas, Bugs, and Show-and-tell — the single place for everything from "how do I…?" to bug reports, ideas, and sharing what you've built. | Asking questions, suggesting ideas, sharing what you've built, and reporting bugs. |
 | 🧪 **[`.github/skills/`](.github/skills/)** | Three Copilot skills auto-discovered by Copilot CLI and VS Code Copilot Chat — for browsing the catalog and deploying agents / starter kits to **Microsoft Discovery services** (cloud, via Microsoft Foundry). Not used by the local Discovery app today. | Researchers and developers integrating the catalog into a Microsoft Foundry workflow. |
 
@@ -104,6 +105,7 @@ Discussions category before opening a pull request.
 | --- | --- | --- |
 | **New agent** | `agents/<agent-name>/` | [Agent authoring guide](docs/authoring-guides/agent-authoring-guide.md) |
 | **New starter kit** | `starter-kits/<kit-name>/` | [Starter-kit authoring guide](docs/authoring-guides/starter-kit-authoring-guide.md) |
+| **New skill** | `skills/<skill-name>/` | [Skill authoring guide](docs/authoring-guides/skill-authoring-guide.md) |
 | **Documentation fix** | `docs/`, `README.md`, etc. | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 | **Idea / feature request** | [Discussions → Ideas](https://techcommunity.microsoft.com/category/azure/discussions/microsoft-discovery-discussions) | — |
 | **Bug** | [Discussions → Bugs](https://techcommunity.microsoft.com/category/azure/discussions/microsoft-discovery-discussions) | — |
@@ -168,6 +170,10 @@ discovery/
 │       └── kit.json                          ← Starter-kit manifest (required)
 │       └── README.md                         ← Optional, but recommended
 │       └── media/                            ← Required only if images are used in Markdown files
+├── skills/
+│   └── <skill-name>/                         ← flat catalog: one folder per skill (Agent Skills standard)
+│       ├── SKILL.md                          ← Skill instructions + frontmatter (required)
+│       └── scripts/ references/ assets/      ← Optional bundled resources
 ├── .auto-registry/                           ← Auto-generated catalog registries; do not edit by hand
 │   ├── agent-registry.json                   ← Aggregated agent metadata from agents/*/
 │   └── starter-kit-registry.json             ← Aggregated starter-kit metadata from starter-kits/*/
@@ -179,7 +185,8 @@ discovery/
 │   ├── discovery-services/                   ← Pointer to Microsoft Learn (services live there)
 │   ├── authoring-guides/                     ← How to author and submit catalog content
 │   │   ├── agent-authoring-guide.md
-│   │   └── starter-kit-authoring-guide.md
+│   │   ├── starter-kit-authoring-guide.md
+│   │   └── skill-authoring-guide.md
 │   └── schemas/                              ← Canonical JSON schemas (*-schema.json)
 ├── utilities/                                ← Operator PowerShell scripts for Discovery services (resource-provider registration, RBAC, data-asset migration)
 ├── .github/

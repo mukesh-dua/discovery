@@ -1,10 +1,14 @@
 """Security contracts for read-only PR validation and privileged reporting."""
 
+import json
 from pathlib import Path
 import re
+import subprocess
 
 import pytest
 import yaml
+
+from validate_pr import check_contributor_scope
 
 
 WORKFLOW_PATH = Path(__file__).resolve().parents[1] / "workflows" / "pr-review.yml"
@@ -74,6 +78,101 @@ def test_author_trust_signals_are_passed_to_validator():
     )
 
 
+@pytest.mark.parametrize(("permission_status", "association_status"), [
+    (0, 0),
+    (404, 0),
+    (403, 0),
+    (0, 403),
+])
+def test_author_trust_resolution_does_not_open_protected_utility_scope(
+    permission_status, association_status,
+):
+    classify = load_workflow()["jobs"]["classify"]
+    script = next(
+        step["with"]["script"] for step in classify["steps"]
+        if step.get("id") == "author_permission"
+    )
+    harness = r"""
+const fs = require('fs');
+const input = JSON.parse(fs.readFileSync(0, 'utf8'));
+const outputs = {}, warnings = [], calls = [], infos = [];
+const core = {
+  setOutput: (key, value) => outputs[key] = value,
+  warning: message => warnings.push(message),
+  info: message => infos.push(message),
+};
+const respond = async (name, options, status, data) => {
+  calls.push({name, options});
+  if (status) throw Object.assign(new Error('Lookup unavailable'), {status});
+  return {data};
+};
+const github = {rest: {
+  repos: {getCollaboratorPermissionLevel: async options =>
+    respond('permission', options, input.permission_status, {permission: 'read'})},
+  pulls: {get: async options =>
+    respond('association', options, input.association_status, {author_association: 'NONE'})},
+}};
+const context = {
+  repo: {owner: 'microsoft', repo: 'discovery'},
+  payload: {pull_request: {
+    number: 103, user: {login: 'Modrats'}, author_association: 'MEMBER',
+  }},
+};
+const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+new AsyncFunction('core', 'github', 'context', input.script)(core, github, context)
+  .then(() => console.log(JSON.stringify({outputs, warnings, calls, infos})))
+  .catch(error => {console.error(error); process.exitCode = 1;});
+"""
+    process = subprocess.run(
+        ["node", "-e", harness],
+        input=json.dumps({
+            "script": script,
+            "permission_status": permission_status,
+            "association_status": association_status,
+        }),
+        capture_output=True, text=True,
+    )
+    assert process.returncode == 0, process.stderr
+    result = json.loads(process.stdout)
+    assert result["outputs"] == {
+        "permission": (
+            "none" if permission_status == 404
+            else "unknown" if permission_status else "read"
+        ),
+        "association": "NONE",
+    }
+    assert result["calls"] == [
+        {"name": "permission", "options": {
+            "owner": "microsoft", "repo": "discovery", "username": "Modrats",
+        }},
+        {"name": "association", "options": {
+            "owner": "microsoft", "repo": "discovery", "pull_number": 103,
+        }},
+    ]
+    assert len(result["warnings"]) == (
+        int(permission_status not in {0, 404}) + int(bool(association_status))
+    )
+    assert any("does not prove non-membership" in info for info in result["infos"])
+    public_paths = [
+        ".gitignore", "README.md", "skills/example/scripts/helper.cjs",
+    ]
+    assert check_contributor_scope(
+        public_paths, result["outputs"]["permission"], "Modrats",
+        author_association=result["outputs"]["association"],
+    ) == []
+    protected_paths = [
+        ".github/workflows/example.yml", "utilities/terraform/main.tf",
+        "utilities/terraform/.terraform.lock.hcl", "utilities/README.md",
+    ]
+    failures = check_contributor_scope(
+        protected_paths, result["outputs"]["permission"],
+        "Modrats", author_association=result["outputs"]["association"],
+    )
+    assert [(failure.rule_id, failure.file) for failure in failures] == [
+        ("POL-021", path) for path in protected_paths
+    ]
+
+
 def test_reporter_executes_only_default_branch_code():
     workflow = load_workflow(REPORT_WORKFLOW_PATH)
     assert workflow["on"] == {
@@ -140,11 +239,18 @@ def owners_for_path(path: str) -> list[str]:
         if not fields:
             continue
         pattern = fields[0]
-        # This policy uses only a global default and rooted directory overrides.
+        # This policy uses only a global default and rooted, wildcard-free
+        # directory (trailing "/") or exact-file overrides.
         assert pattern == "*" or (
-            pattern.startswith("/") and pattern.endswith("/")
+            pattern.startswith("/") and "*" not in pattern
         )
-        if pattern == "*" or path.startswith(pattern[1:]):
+        if pattern == "*":
+            matches = True
+        elif pattern.endswith("/"):
+            matches = path.startswith(pattern[1:])
+        else:
+            matches = path == pattern[1:]
+        if matches:
             owners = fields[1:]
     return owners
 
@@ -153,10 +259,16 @@ def owners_for_path(path: str) -> list[str]:
     "README.md",
     "docs/ordinary-guide.md",
     ".github/CODEOWNERS",
+    ".github/skills/demo/SKILL.md",
+    "skills-other/demo/scripts/build.sh",
     ".github/workflows/pr-review.yml",
     ".github/scripts/validate_pr.py",
     ".github/tests-other/test_example.py",
     ".github/policy/baseline.json",
+    ".github/dependabot.yml",
+    ".github/requirements-other.txt",
+    ".github/scripts/requirements-ci.txt",
+    ".config/other-tool.json",
     "docs/validation-baseline-debt.md",
     "docs/schemas/agent.schema.json",
     ".auto-registry/agents.json",
@@ -184,8 +296,13 @@ def test_utilities_use_engineering_reviewers(path):
 @pytest.mark.parametrize("path", [
     ".github/tests/test_pr_review_workflow_security.py",
     ".github/tests/rules/test_pol_016.py",
+    ".github/requirements-ci.txt",
+    ".config/dotnet-tools.json",
     "agents/molecule-visualization/agent.yaml",
     "starter-kits/example/kit.json",
+    "skills/example/SKILL.md",
+    "skills/example/scripts/build.sh",
+    "skills/example/templates/main.tex",
 ])
 def test_catalog_and_tests_allow_contributions_reviewers(path):
     assert owners_for_path(path) == [
